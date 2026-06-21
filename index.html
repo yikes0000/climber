@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CONTACT SHEET — Flickr 相簿存底工具</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0b0c;
+    --panel:#16151a;
+    --strip:#2b2920;
+    --strip-dark:#1d1c14;
+    --text:#e9e6df;
+    --muted:#8d897c;
+    --accent:#d6452c;
+    --accent-dim:#5a2018;
+    --line:#2a2a2d;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Mono', monospace;
+    line-height:1.5;
+  }
+  a{color:var(--accent);}
+  .wrap{
+    max-width:920px;
+    margin:0 auto;
+    padding:32px 18px 80px;
+  }
+  header{
+    margin-bottom:28px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:18px;
+  }
+  h1{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size:clamp(28px,5vw,42px);
+    letter-spacing:0.5px;
+    margin:0 0 6px;
+  }
+  h1 span{color:var(--accent);}
+  .sub{
+    color:var(--muted);
+    font-size:13px;
+    letter-spacing:0.4px;
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:18px;
+    margin-bottom:18px;
+  }
+  .field{margin-bottom:14px;}
+  .field:last-child{margin-bottom:0;}
+  label{
+    display:block;
+    font-size:11px;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  input[type=text], select{
+    width:100%;
+    background:#0e0d10;
+    border:1px solid var(--line);
+    color:var(--text);
+    font-family:inherit;
+    font-size:14px;
+    padding:10px 12px;
+    border-radius:4px;
+  }
+  input[type=text]:focus, select:focus, button:focus, .frame:focus-within{
+    outline:2px solid var(--accent);
+    outline-offset:1px;
+  }
+  .row{display:flex; gap:10px; flex-wrap:wrap;}
+  .row > .field{flex:1; min-width:200px;}
+  details{margin-top:10px;}
+  summary{
+    cursor:pointer;
+    color:var(--muted);
+    font-size:12px;
+  }
+  details p{
+    font-size:12.5px;
+    color:var(--muted);
+    line-height:1.7;
+    margin:8px 0 0;
+  }
+  button{
+    font-family:inherit;
+    font-size:13px;
+    letter-spacing:0.5px;
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    padding:11px 18px;
+    border-radius:4px;
+    cursor:pointer;
+  }
+  button.secondary{
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--text);
+  }
+  button:disabled{opacity:0.4; cursor:not-allowed;}
+  button:hover:not(:disabled){filter:brightness(1.1);}
+  .status{
+    font-size:12.5px;
+    color:var(--muted);
+    min-height:18px;
+    margin-top:12px;
+    white-space:pre-wrap;
+  }
+  .filmstrip-wrap{
+    background:var(--bg);
+    border-radius:6px;
+    overflow:hidden;
+  }
+  .sprockets{
+    height:14px;
+    background-color:var(--strip);
+    background-image:radial-gradient(circle, var(--bg) 4px, transparent 4.2px);
+    background-size:22px 14px;
+    background-position:6px center;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(120px,1fr));
+    gap:2px;
+    background:var(--strip-dark);
+    padding:10px 8px;
+  }
+  .frame{
+    position:relative;
+    background:#000;
+    aspect-ratio:1/1;
+    border:1px solid #000;
+  }
+  .frame img{
+    width:100%; height:100%;
+    object-fit:cover;
+    display:block;
+    opacity:0.92;
+  }
+  .frame-number{
+    position:absolute; top:4px; left:4px;
+    font-size:10px;
+    color:#f2efe6;
+    background:rgba(0,0,0,0.55);
+    padding:1px 5px;
+    border-radius:2px;
+    letter-spacing:0.5px;
+  }
+  .frame-select{
+    position:absolute; top:4px; right:4px;
+    width:18px; height:18px;
+  }
+  .frame-select input{width:18px;height:18px;cursor:pointer;}
+  .frame-title{
+    position:absolute; left:0; right:0; bottom:0;
+    font-size:10px;
+    color:#cfcabd;
+    background:linear-gradient(transparent, rgba(0,0,0,0.75));
+    padding:10px 5px 4px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  footer.bar{
+    position:sticky;
+    bottom:0;
+    margin-top:18px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:14px 18px;
+  }
+  .count{font-size:12.5px; color:var(--muted);}
+  .note{
+    font-size:11.5px;
+    color:var(--muted);
+    margin-top:20px;
+    border-top:1px solid var(--line);
+    padding-top:14px;
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .frame img{transition:opacity 0.2s;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>CONTACT<span>::</span>SHEET</h1>
+    <div class="sub">Flickr 公開相簿存底工具 — 個人練習素材用，不處理帳號登入</div>
+  </header>
+
+  <div class="panel">
+    <div class="field">
+      <label for="apiKey">API KEY</label>
+      <input type="text" id="apiKey" placeholder="貼上從頁面原始碼找到的 api_key" />
+      <details>
+        <summary>找不到 API Key？</summary>
+        <p>
+          用瀏覽器打開任意 Flickr 相簿頁面 → 右鍵「檢視網頁原始碼」(Ctrl+U)
+          → 用 Ctrl+F 搜尋 <code>api_key</code> → 會看到類似
+          <code>"api_key":"73d8a48f5c..."</code> 的字串 → 複製那串值貼到上面。
+          這個 key 是 Flickr 網站自己前端在用的公開 key，每個訪客瀏覽頁面時
+          本來就會收到，不是任何人的私人憑證。
+        </p>
+      </details>
+    </div>
+
+    <div class="field">
+      <label for="albumUrl">相簿網址</label>
+      <input type="text" id="albumUrl" placeholder="https://www.flickr.com/photos/xxx/albums/72177720xxxxx" />
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="quality">下載畫質</label>
+        <select id="quality">
+          <option value="large" selected>Large（約 2048px）</option>
+          <option value="original">Original（原圖，若有開放）</option>
+          <option value="medium">Medium（約 800px）</option>
+          <option value="small">Small（約 320px）</option>
+        </select>
+      </div>
+      <div class="field" style="display:flex; align-items:flex-end;">
+        <button id="loadBtn" style="width:100%;">載入相簿</button>
+      </div>
+    </div>
+
+    <div class="status" id="status">準備就緒。只能讀取「公開」相簿；分級內容（moderate）在未登入狀態下會被 Flickr 自動過濾，這是平台端的限制。</div>
+  </div>
+
+  <div class="filmstrip-wrap">
+    <div class="sprockets"></div>
+    <div class="grid" id="grid"></div>
+    <div class="sprockets"></div>
+  </div>
+
+  <footer class="bar">
+    <div class="count" id="count">尚未載入任何相片</div>
+    <div style="display:flex; gap:8px;">
+      <button class="secondary" id="selectAllBtn">全選 / 取消全選</button>
+      <button id="downloadBtn" disabled>下載已選相片</button>
+    </div>
+  </footer>
+
+  <div class="note">
+    下載採逐張觸發瀏覽器下載，瀏覽器可能會跳出「允許多檔下載」的提示，請按允許。
+    跨網域下載時部分瀏覽器會忽略自訂檔名、改用 Flickr 原始檔名，這是瀏覽器安全機制，不影響圖片本身。
+    此頁面所有運算都在你的瀏覽器本機執行，不會把任何資料送到除 Flickr 以外的伺服器。
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const API_BASE = "https://api.flickr.com/services/rest/";
+  const QUALITY_PRESETS = {
+    original: ["Original"],
+    large:    ["Large 2048", "Large 1600", "Large", "Original"],
+    medium:   ["Medium 800", "Medium 640", "Medium"],
+    small:    ["Small 320", "Small"],
+  };
+
+  const els = {
+    apiKey: document.getElementById('apiKey'),
+    albumUrl: document.getElementById('albumUrl'),
+    quality: document.getElementById('quality'),
+    loadBtn: document.getElementById('loadBtn'),
+    status: document.getElementById('status'),
+    grid: document.getElementById('grid'),
+    count: document.getElementById('count'),
+    selectAllBtn: document.getElementById('selectAllBtn'),
+    downloadBtn: document.getElementById('downloadBtn'),
+  };
+
+  const state = { items: [] };
+
+  // ---- restore saved settings ----
+  els.apiKey.value = localStorage.getItem('cs_api_key') || '';
+  els.albumUrl.value = localStorage.getItem('cs_last_url') || '';
+  els.quality.value = localStorage.getItem('cs_quality') || 'large';
+
+  function setStatus(msg){ els.status.textContent = msg; }
+  function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+  function sanitize(name){
+    return String(name).replace(/[\\/:*?"<>|]/g, '_').trim() || 'untitled';
+  }
+
+  // ---- JSONP helper (avoids CORS entirely, this is a script tag, not fetch) ----
+  let jsonpCounter = 0;
+  function jsonp(url){
+    return new Promise((resolve, reject) => {
+      const cbName = '__cs_cb_' + (jsonpCounter++);
+      const script = document.createElement('script');
+      let settled = false;
+      const cleanup = () => {
+        delete window[cbName];
+        script.remove();
+      };
+      window[cbName] = (data) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve(data);
+      };
+      script.onerror = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(new Error('網路請求失敗'));
+      };
+      const sep = url.includes('?') ? '&' : '?';
+      script.src = url + sep + 'jsoncallback=' + cbName;
+      document.body.appendChild(script);
+      setTimeout(() => {
+        if (!settled){
+          settled = true;
+          cleanup();
+          reject(new Error('請求逾時'));
+        }
+      }, 15000);
+    });
+  }
+
+  function callApi(apiKey, method, params){
+    const qs = new URLSearchParams(Object.assign({
+      method, api_key: apiKey, format: 'json'
+    }, params || {}));
+    return jsonp(API_BASE + '?' + qs.toString());
+  }
+
+  function parsePhotosetId(url){
+    const m = url.match(/\/(?:albums|sets)\/(\d+)/);
+    return m ? m[1] : null;
+  }
+
+  async function getAllPhotos(apiKey, photosetId){
+    let photos = [];
+    let page = 1;
+    while (true){
+      const data = await callApi(apiKey, 'flickr.photosets.getPhotos', {
+        photoset_id: photosetId, page, per_page: 500
+      });
+      if (data.stat !== 'ok'){
+        throw new Error(data.message || 'API 錯誤');
+      }
+      const ps = data.photoset;
+      if (page === 1){
+        setStatus(`API 回報：總共 ${ps.total} 張相片，共 ${ps.pages} 頁`);
+      }
+      photos = photos.concat(ps.photo);
+      if (page >= parseInt(ps.pages, 10)) break;
+      page++;
+    }
+    return photos;
+  }
+
+  async function getSizes(apiKey, photoId){
+    const data = await callApi(apiKey, 'flickr.photos.getSizes', { photo_id: photoId });
+    if (data.stat !== 'ok') return null;
+    return data.sizes.size;
+  }
+
+  function pickByLabels(sizes, labels){
+    const map = {};
+    sizes.forEach(s => map[s.label] = s);
+    for (const label of labels){
+      if (map[label]) return map[label];
+    }
+    return sizes[sizes.length - 1] || null;
+  }
+
+  function pickThumb(sizes){
+    return pickByLabels(sizes, ['Thumbnail', 'Square 150', 'Square']);
+  }
+
+  function pickFull(sizes, quality){
+    return pickByLabels(sizes, QUALITY_PRESETS[quality] || ['Original']);
+  }
+
+  function renderFrame(item, index){
+    const frame = document.createElement('div');
+    frame.className = 'frame';
+
+    const num = document.createElement('div');
+    num.className = 'frame-number';
+    num.textContent = String(index).padStart(3, '0');
+
+    const selectWrap = document.createElement('label');
+    selectWrap.className = 'frame-select';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = true;
+    cb.addEventListener('change', () => { item.selected = cb.checked; updateCount(); });
+    selectWrap.appendChild(cb);
+
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.src = item.thumbUrl;
+    img.alt = item.title;
+
+    const title = document.createElement('div');
+    title.className = 'frame-title';
+    title.textContent = item.title;
+
+    frame.appendChild(img);
+    frame.appendChild(num);
+    frame.appendChild(selectWrap);
+    frame.appendChild(title);
+    els.grid.appendChild(frame);
+  }
+
+  function updateCount(){
+    const selected = state.items.filter(i => i.selected).length;
+    els.count.textContent = `共 ${state.items.length} 張，已選 ${selected} 張`;
+    els.downloadBtn.disabled = selected === 0;
+  }
+
+  async function loadAlbum(){
+    const apiKey = els.apiKey.value.trim();
+    const url = els.albumUrl.value.trim();
+
+    if (!apiKey){ setStatus('請先填入 API Key（看上面「找不到 API Key？」說明）'); return; }
+    const photosetId = parsePhotosetId(url);
+    if (!photosetId){ setStatus('看不出相簿 ID，網址要包含 /albums/數字 或 /sets/數字'); return; }
+
+    localStorage.setItem('cs_api_key', apiKey);
+    localStorage.setItem('cs_last_url', url);
+    localStorage.setItem('cs_quality', els.quality.value);
+
+    els.loadBtn.disabled = true;
+    els.grid.innerHTML = '';
+    state.items = [];
+    updateCount();
+
+    try{
+      setStatus('讀取相簿照片清單...');
+      const photos = await getAllPhotos(apiKey, photosetId);
+
+      let done = 0;
+      for (const p of photos){
+        const sizes = await getSizes(apiKey, p.id);
+        done++;
+        if (!sizes){
+          setStatus(`處理中 ${done}/${photos.length}（跳過一張，無尺寸資訊）`);
+          continue;
+        }
+        const thumb = pickThumb(sizes);
+        const full = pickFull(sizes, els.quality.value);
+        const item = {
+          id: p.id,
+          title: p.title || p.id,
+          thumbUrl: thumb ? thumb.source : '',
+          fullUrl: full ? full.source : '',
+          width: full ? full.width : '?',
+          height: full ? full.height : '?',
+          selected: true,
+        };
+        state.items.push(item);
+        renderFrame(item, done);
+        updateCount();
+        setStatus(`處理中 ${done}/${photos.length}`);
+      }
+      setStatus(`完成。共 ${state.items.length} 張可下載。`);
+    } catch(e){
+      setStatus('發生錯誤：' + e.message);
+    } finally {
+      els.loadBtn.disabled = false;
+    }
+  }
+
+  async function downloadSelected(){
+    const items = state.items.filter(i => i.selected && i.fullUrl);
+    if (items.length === 0) return;
+    els.downloadBtn.disabled = true;
+    for (let i = 0; i < items.length; i++){
+      const item = items[i];
+      const ext = (item.fullUrl.split('.').pop() || 'jpg').split('?')[0];
+      const filename = `${String(i+1).padStart(3,'0')}_${sanitize(item.title)}.${ext}`;
+      const a = document.createElement('a');
+      a.href = item.fullUrl;
+      a.download = filename;
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setStatus(`下載中 ${i+1}/${items.length}：${filename}`);
+      await sleep(450);
+    }
+    setStatus(`已觸發 ${items.length} 張的下載，請檢查瀏覽器下載資料夾。`);
+    els.downloadBtn.disabled = false;
+  }
+
+  els.loadBtn.addEventListener('click', loadAlbum);
+  els.downloadBtn.addEventListener('click', downloadSelected);
+  els.selectAllBtn.addEventListener('click', () => {
+    const anySelected = state.items.some(i => i.selected);
+    const next = !anySelected;
+    state.items.forEach(i => i.selected = next);
+    document.querySelectorAll('.frame-select input').forEach(cb => cb.checked = next);
+    updateCount();
+  });
+
+})();
+</script>
+</body>
+</html>
